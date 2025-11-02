@@ -1,0 +1,16 @@
+{
+  "name": "Shop-n-Go",
+  "short_name": "Shop-n-Go",
+  "start_url": "login.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#0e11c5",
+  "description": "Application simple pour gérer votre liste de courses.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
