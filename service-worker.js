@@ -21,8 +21,16 @@ self.addEventListener('fetch', event => {
 
   // NE PAS intercepter Firebase ou Google APIs
   if (url.origin.includes('firestore.googleapis.com') || url.origin.includes('firebase')) {
-    return;
+    // Laisse la requête passer normalement
+    return event.respondWith(fetch(event.request));
   }
+
+  // Cache first pour fichiers statiques
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
+  );
+});
+
 
   // Cache first pour fichiers statiques
   event.respondWith(
