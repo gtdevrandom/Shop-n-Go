@@ -11,29 +11,30 @@ const firebaseConfig = {
   measurementId: "G-CJ2KZ8DCS6"
 };
 
+// Vérifie la connexion
 if(localStorage.getItem("auth")!=="true") location.href="login.html";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const ref = doc(db,"lists","shopping");
 
-const ul = document.getElementById("list");
-const addBtn = document.querySelector(".add-button");
-const input = document.getElementById("item");
-const optionsMenu = document.getElementById("optionsMenu");
-
 let itemsArray = [];
 let draggedItem = null;
 let startY = 0;
 let currentIndex = -1;
-// --- Live Firestore ---
+
+const ul = document.getElementById("list");
+const input = document.getElementById("item");
+const optionsMenu = document.getElementById("optionsMenu");
+
+// --- Firestore live update ---
 onSnapshot(ref, snap => {
   itemsArray = snap.data()?.items || [];
   renderList();
 });
 
-// --- Functions ---
-function renderList() {
+// --- Render list ---
+function renderList(){
   ul.innerHTML = "";
   itemsArray.forEach((item,index)=>{
     let li = document.createElement("li");
@@ -43,11 +44,17 @@ function renderList() {
     li.dataset.index = index;
 
     li.innerHTML = `
-      <input type="checkbox" class="small-checkbox" onclick="toggleBought(${index})" ${item.bought?"checked":""}>
-      <div class="item-content" onclick="toggleBought(${index})">${item.name}</div>
-      <button class="not-found-button" onclick="toggleNotFound(${index})">🚫</button>
-      <button class="delete-item" onclick="deleteItem(${index})">❌</button>
+      <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
+      <div class="item-content">${item.name}</div>
+      <button class="not-found-button">🚫</button>
+      <button class="delete-item">❌</button>
     `;
+
+    // Events
+    li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index);
+    li.querySelector(".item-content").onclick = ()=>window.toggleBought(index);
+    li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index);
+    li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index);
 
     li.addEventListener("touchstart", touchStart,{passive:false});
     li.addEventListener("touchmove", touchMove,{passive:false});
@@ -57,7 +64,8 @@ function renderList() {
   });
 }
 
-window.addItem = async function() {
+// --- Functions exposées ---
+window.addItem = async function(){
   const val = input.value.trim();
   if(!val) return;
   itemsArray.push({name:val,bought:false,notFound:false});
@@ -118,8 +126,8 @@ window.shareList = function(){
   let text = itemsArray.map(it=>it.name).join("\n");
   const siteLink = "https://gtdevrandom.github.io/Shop-n-Go/";
   if(navigator.share){
-    navigator.share({title:'Liste de Courses',text:`Ma liste :\n${text}\n${siteLink}`}).catch(console.error);
-  } else alert("Partage non supporté");
+    navigator.share({title:'Liste de Courses',text:`Voici ma liste de courses :\n${text}\n\nVisitez : ${siteLink}`}).catch(console.error);
+  } else alert("Partage non supporté sur ce navigateur.");
 };
 
 window.loadFile = async function(e){
