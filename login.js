@@ -1,6 +1,14 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'
 import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
 
+// --- SI DEJA CONNECTÉ → REDIRECTION DIRECTE ---
+if (localStorage.getItem("auth") === "true") {
+  location.href = "app.html";
+  // IMPORTANT sinon le reste du script se lance quand même
+  throw new Error("Déjà connecté – arrêt script login.js");
+}
+// ------------------------------------------------
+
 const firebaseConfig = {
   apiKey: "AIzaSyBGyhISFdzVklC1K7Y3TNyQpQ-QJWUXPIo",
   authDomain: "shopngo-2008.firebaseapp.com",
@@ -10,7 +18,6 @@ const firebaseConfig = {
   appId: "1:931959995203:web:f06465bad7af5899868df6",
   measurementId: "G-CJ2KZ8DCS6"
 };
-
 
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
@@ -32,11 +39,9 @@ document.querySelector("#loginBtn").addEventListener("click", async () => {
   const userHash = await hashSHA256(salt + pwd);
 
   if(userHash === rightHash){
-    // Stocker l’authentification
     localStorage.setItem("auth", "true");
     location.href = "app.html";
   } else {
     document.querySelector("#error").style.display = "block";
   }
 });
-
