@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion</title>
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui, sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      background:#f4f4f4;
+    }
+    .card{
+      background:white;
+      width:90%;
+      max-width:420px;
+      padding:2rem;
+      border-radius:14px;
+      box-shadow:0 4px 12px rgba(0,0,0,.1);
+    }
+    input{
+      width:100%;
+      font-size:1.1rem;
+      padding:.9rem 1rem;
+      border-radius:10px;
+      border:1px solid #ddd;
+      margin:1rem 0;
+    }
+    button{
+      width:100%;
+      padding:1rem 1.2rem;
+      border-radius:10px;
+      border:0;
+      font-size:1.1rem;
+      font-weight:600;
+      cursor:pointer;
+      background: #333;
+      color:white;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Connexion</h1>
+    <input id="password" type="password" placeholder="Mot de passe">
+    <button id="loginBtn">Se connecter</button>
+    <p id="error" style="color:red;display:none;margin-top:1rem;">Mot de passe incorrect</p>
+  </div>
+
+  <script type="module" src="./login.js"></script>
+</body>
+</html>
