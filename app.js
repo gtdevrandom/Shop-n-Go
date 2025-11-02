@@ -26,19 +26,6 @@ let itemsArray = [];
 let draggedItem = null;
 let startY = 0;
 let currentIndex = -1;
-
-window.addItem = async function() { ... }
-window.toggleBought = async function(i){ ... }
-window.toggleNotFound = async function(i){ ... }
-window.deleteItem = async function(i){ ... }
-window.clearList = async function(){ ... }
-window.downloadList = function(){ ... }
-window.printList = function(){ ... }
-window.shareList = function(){ ... }
-window.loadFile = async function(e){ ... }
-window.toggleOptionsMenu = function(){ ... }
-
-
 // --- Live Firestore ---
 onSnapshot(ref, snap => {
   itemsArray = snap.data()?.items || [];
