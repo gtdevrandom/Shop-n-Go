@@ -47,6 +47,13 @@ ul { padding:0; margin:0; list-style:none; }
     </div>
   </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('Service Worker enregistré.'))
+    .catch(err => console.log('Erreur Service Worker:', err));
+}
+</script>
 
 <script type="module" src="./app.js"></script>
 </body>
