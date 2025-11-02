@@ -21,7 +21,7 @@ async function hashSHA256(str){
   return Array.from(new Uint8Array(buff)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-document.querySelector("#loginBtn").addEventListener("click", async()=>{
+document.querySelector("#loginBtn").addEventListener("click", async () => {
   const pwd = document.querySelector("#password").value;
 
   const ref = doc(db, "config", "auth");
@@ -32,9 +32,11 @@ document.querySelector("#loginBtn").addEventListener("click", async()=>{
   const userHash = await hashSHA256(salt + pwd);
 
   if(userHash === rightHash){
-    localStorage.setItem("auth","true");
+    // Stocker l’authentification
+    localStorage.setItem("auth", "true");
     location.href = "app.html";
   } else {
-    document.querySelector("#error").style.display = "block"
+    document.querySelector("#error").style.display = "block";
   }
-})
+});
+
