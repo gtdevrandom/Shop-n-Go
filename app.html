@@ -1,27 +1,51 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Liste</title>
-  <style>
-    body{margin:0;font-family:system-ui,sans-serif;background:#fafafa;padding:1rem;}
-    h1{margin:0 0 1rem;}
-    .row{display:flex;gap:.5rem;}
-    input{flex:1;padding:.9rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1.1rem;}
-    button{padding:.9rem 1.2rem;border-radius:10px;border:0;font-size:1rem;font-weight:600;cursor:pointer;background:#333;color:white;}
-    ul{list-style:none;padding:0;margin:1.2rem 0;}
-    li{background:white;padding:.9rem 1rem;margin:.4rem 0;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.06);}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liste de Courses</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<style>
+body { font-family: Arial,sans-serif; background:#121212; color:white; margin:0; padding:20px; }
+.container { max-width: 400px; margin:auto; background:#1e1e1e; padding:20px; border-radius:5px; box-shadow:0 0 10px rgba(0,0,255,0.5); position:relative; }
+input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:5px; box-sizing:border-box; }
+input { background:#333; color:white; }
+.add-button { background: rgb(9,0,128); color:white; font-weight:bold; cursor:pointer; }
+.not-found-button { background:darkorange; color:white; cursor:pointer; border-radius:10%; width:30px; height:30px; font-size:14px; display:flex; align-items:center; justify-content:center; margin-right:5px; }
+ul { padding:0; margin:0; list-style:none; }
+.item { display:flex; align-items:center; justify-content:space-between; background:#333; padding:3px; margin-top:3px; border-radius:5px; position:relative; transition:transform 0.2s ease-in-out; }
+.item:active { cursor:grabbing; }
+.dragging { transform:scale(1.05); }
+.bought { text-decoration:line-through; color:grey; }
+.not-found { background:darkred; color:white; }
+.small-checkbox { width:25px; height:25px; margin-right:10px; }
+.item-content { flex:1; display:flex; justify-content:center; align-items:center; }
+.delete-item { background:red; color:white; border:none; border-radius:10%; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-left:5px; }
+.options-button { position:absolute; top:10px; left:10px; width:40px; height:40px; background:#0e11c5; color:white; border-radius:5px; cursor:pointer; display:flex; justify-content:center; align-items:center; z-index:555555; }
+.options-button:active { background:rgb(68,134,255); }
+.options-button:hover { background:#00007f; }
+.options-menu { display:none; position:absolute; top:60px; right:20px; background:#1e1e1e; padding:10px; border-radius:5px; box-shadow:0 0 10px rgba(0,0,255,0.5); z-index:55555; }
+.action-buttons button { background:rgb(9,0,128); color:white; cursor:pointer; padding:10px; margin:5px 0; width:100%; border:none; border-radius:5px; }
+</style>
 </head>
 <body>
-  <h1>🛒 Liste</h1>
-  <div class="row">
-    <input id="item" placeholder="Ajouter un article..."/>
-    <button id="addBtn">Ajouter</button>
-  </div>
+<button class="options-button" onclick="toggleOptionsMenu()">⚙️</button>
+<div class="container">
+  <input type="text" id="item" placeholder="Nom de l'article">
+  <button class="add-button" onclick="addItem()">Ajouter</button>
   <ul id="list"></ul>
+  <div class="options-menu" id="optionsMenu">
+    <div class="action-buttons">
+      <button onclick="downloadList()">Télécharger en .txt</button>
+      <button onclick="printList()">Imprimer</button>
+      <button onclick="shareList()">Partager</button>
+      <button onclick="clearList()">Supprimer la liste</button>
+      <input type="file" id="fileInput" style="display:none;" onchange="loadFile(event)">
+      <button onclick="document.getElementById('fileInput').click()">Charger un fichier .txt</button>
+    </div>
+  </div>
+</div>
 
-  <script type="module" src="app.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
