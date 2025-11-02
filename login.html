@@ -53,6 +53,13 @@
     <button id="loginBtn">Se connecter</button>
     <p id="error" style="color:red;display:none;margin-top:1rem;">Mot de passe incorrect</p>
   </div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('Service Worker enregistré.'))
+    .catch(err => console.log('Erreur Service Worker:', err));
+}
+</script>
 
   <script type="module" src="./login.js"></script>
 </body>
