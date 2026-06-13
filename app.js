@@ -13,10 +13,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const ref = doc(db,"lists","shopping");
+const refItems = doc(db,"lists","shopping");
+const refFavorites = doc(db,"lists","favorites");
 
 let itemsArray = [];
-let permanentItems = [];
+let favoriteItems = [];
 let draggedItem = null;
 let startY = 0;
 let currentIndex = -1;
@@ -25,51 +26,66 @@ const ul = document.getElementById("list");
 const input = document.getElementById("item");
 const optionsMenu = document.getElementById("optionsMenu");
 
-// --- Load permanent items from localStorage ---
-function loadPermanentItems() {
-  const stored = localStorage.getItem("permanentItems");
-  permanentItems = stored ? JSON.parse(stored) : [];
-}
-
-loadPermanentItems();
-
-// --- Firestore live update ---
-onSnapshot(ref, snap => {
+// --- Firestore live updates ---
+onSnapshot(refItems, snap => {
   itemsArray = snap.data()?.items || [];
+  renderList();
+});
+
+onSnapshot(refFavorites, snap => {
+  favoriteItems = snap.data()?.items || [];
   renderList();
 });
 
 // --- Render list ---
 function renderList(){
   ul.innerHTML = "";
-  const allItems = [...itemsArray, ...permanentItems];
-  allItems.forEach((item,index)=>{
-    let li = document.createElement("li");
-    li.className = "item";
-    if(item.bought) li.classList.add("bought");
-    if(item.notFound) li.classList.add("not-found");
-    li.dataset.index = index;
-    li.dataset.isPermanent = index >= itemsArray.length ? 'true' : 'false';
-
-    li.innerHTML = `
-      <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
-      <div class="item-content">${item.name}</div>
-      <button class="not-found-button">🚫</button>
-      <button class="delete-item">❌</button>
-    `;
-
-    // Events
-    li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index);
-    li.querySelector(".item-content").onclick = ()=>window.toggleBought(index);
-    li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index);
-    li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index, index >= itemsArray.length);
-
-    li.addEventListener("touchstart", touchStart,{passive:false});
-    li.addEventListener("touchmove", touchMove,{passive:false});
-    li.addEventListener("touchend", touchEnd);
-
-    ul.appendChild(li);
+  
+  // Render favorites first
+  favoriteItems.forEach((item,index)=>{
+    renderItem(item, index, true);
   });
+  
+  // Render regular items
+  itemsArray.forEach((item,index)=>{
+    renderItem(item, index, false);
+  });
+}
+
+function renderItem(item, index, isFavorite){
+  let li = document.createElement("li");
+  li.className = "item";
+  if(isFavorite) li.classList.add("favorite-item");
+  if(item.bought) li.classList.add("bought");
+  if(item.notFound) li.classList.add("not-found");
+  li.dataset.index = index;
+  li.dataset.isFavorite = isFavorite ? 'true' : 'false';
+
+  // Pour les favoris, pas de bouton de suppression
+  const deleteButton = isFavorite ? '' : '<button class="delete-item">❌</button>';
+  
+  li.innerHTML = `
+    <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
+    <div class="item-content">${item.name}</div>
+    <button class="not-found-button">🚫</button>
+    ${deleteButton}
+  `;
+
+  // Events
+  li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index, isFavorite);
+  li.querySelector(".item-content").onclick = ()=>window.toggleBought(index, isFavorite);
+  li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index, isFavorite);
+  
+  const deleteBtn = li.querySelector(".delete-item");
+  if(deleteBtn) {
+    deleteBtn.onclick = ()=>window.deleteItem(index, isFavorite);
+  }
+
+  li.addEventListener("touchstart", touchStart,{passive:false});
+  li.addEventListener("touchmove", touchMove,{passive:false});
+  li.addEventListener("touchend", touchEnd);
+
+  ul.appendChild(li);
 }
 
 // --- Functions exposées ---
@@ -77,49 +93,42 @@ window.addItem = async function(){
   const val = input.value.trim();
   if(!val) return;
   itemsArray.push({name:val,bought:false,notFound:false});
-  await updateDoc(ref,{items:itemsArray});
+  await updateDoc(refItems,{items:itemsArray});
   input.value="";
 };
 
-window.toggleBought = async function(i){
-  if(i >= itemsArray.length) {
-    const permanentIndex = i - itemsArray.length;
-    permanentItems[permanentIndex].bought = !permanentItems[permanentIndex].bought;
-    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
-    renderList();
+window.toggleBought = async function(i, isFavorite){
+  if(isFavorite) {
+    favoriteItems[i].bought = !favoriteItems[i].bought;
+    await updateDoc(refFavorites,{items:favoriteItems});
   } else {
     itemsArray[i].bought = !itemsArray[i].bought;
-    await updateDoc(ref,{items:itemsArray});
+    await updateDoc(refItems,{items:itemsArray});
   }
 };
 
 window.toggleNotFound = async function(i){
   if(i >= itemsArray.length) {
-    const permanentIndex = i - itemsArray.length;
-    permanentItems[permanentIndex].notFound = !permanentItems[permanentIndex].notFound;
-    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
-    renderList();
+    const permanentIndex = i - itemsArra, isFavorite){
+  if(isFavorite) {
+    favoriteItems[i].notFound = !favoriteItems[i].notFound;
+    await updateDoc(refFavorites,{items:favoriteItems});
   } else {
     itemsArray[i].notFound = !itemsArray[i].notFound;
-    await updateDoc(ref,{items:itemsArray});
-  }
-};
+    await updateDoc(refItems
 
 window.deleteItem = async function(i, isPermanent){
   if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
   if(isPermanent) {
     const permanentIndex = i - itemsArray.length;
-    permanentItems.splice(permanentIndex,1);
-    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
-  } else {
-    itemsArray.splice(i,1);
-    await updateDoc(ref,{items:itemsArray});
+    permanentItems.splice(permanentIndexFavorite){
+  if(isFavorite) {
+    alert("Les articles favoris ne peuvent pas être supprimés.");
+    return;
   }
-  renderList();
-};
-
-window.clearList = async function(){
-  const notFoundItems = itemsArray.filter(it=>it.notFound);
+  if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
+  itemsArray.splice(i,1);
+  await updateDoc(refItems,{items:itemsArray}undItems = itemsArray.filter(it=>it.notFound);
   if(notFoundItems.length>0){
     if(confirm("Les non trouvés seront conservés, supprimer le reste ?")){
       itemsArray = itemsArray.filter(it=>it.notFound);
@@ -128,11 +137,11 @@ window.clearList = async function(){
   } else if(confirm("Supprimer toute la liste ?")){
     itemsArray=[];
     await updateDoc(ref,{items:itemsArray});
-  }
-};
-
-window.downloadList = function(){
-  let text = itemsArray.map(it=>it.name).join("\n");
+  }Items,{items:itemsArray});
+    }
+  } else if(confirm("Supprimer toute la liste ?")){
+    itemsArray=[];
+    await updateDoc(refItems.map(it=>it.name).join("\n");
   let blob = new Blob([text],{type:'text/plain'});
   let a = document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -170,28 +179,27 @@ window.loadFile = async function(e){
   reader.readAsText(file);
 };
 
-window.toggleOptionsMenu = function(){
+window.toggleOptiItemsonsMenu = function(){
   optionsMenu.style.display = optionsMenu.style.display==='block'?'none':'block';
 };
 
 window.managePermanentItems = function(){
   const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
   if(!itemName || !itemName.trim()) return;
+  async function(){
+  const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
+  if(!itemName || !itemName.trim()) return;
   
   const newItem = {name: itemName.trim(), bought: false, notFound: false};
-  const exists = permanentItems.some(it => it.name.toLowerCase() === newItem.name.toLowerCase());
+  const exists = favoriteItems.some(it => it.name.toLowerCase() === newItem.name.toLowerCase());
   
   if(exists) {
     alert("Cet article est déjà dans les favoris.");
     return;
   }
   
-  permanentItems.push(newItem);
-  localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
-  renderList();
-  alert("Article ajouté aux favoris !");
-};
-
+  favoriteItems.push(newItem);
+  await updateDoc(refFavorites,{items:favoriteItems}
 // --- Drag & Drop tactile ---
 function touchStart(e){
   if(e.target.closest('.small-checkbox')||e.target.closest('.delete-item')||e.target.closest('.not-found-button')) return;
@@ -215,7 +223,7 @@ function touchMove(e){
       itemsArray.splice(targetIndex,0,moved);
       currentIndex=targetIndex;
       updateDoc(ref,{items:itemsArray});
-    }
+    }Items
   }
 }
 
