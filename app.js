@@ -11,14 +11,12 @@ const firebaseConfig = {
   measurementId: "G-CJ2KZ8DCS6"
 };
 
-// Vérifie la connexion
-if(localStorage.getItem("auth")!=="true") location.href="login.html";
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const ref = doc(db,"lists","shopping");
 
 let itemsArray = [];
+let permanentItems = [];
 let draggedItem = null;
 let startY = 0;
 let currentIndex = -1;
@@ -26,6 +24,14 @@ let currentIndex = -1;
 const ul = document.getElementById("list");
 const input = document.getElementById("item");
 const optionsMenu = document.getElementById("optionsMenu");
+
+// --- Load permanent items from localStorage ---
+function loadPermanentItems() {
+  const stored = localStorage.getItem("permanentItems");
+  permanentItems = stored ? JSON.parse(stored) : [];
+}
+
+loadPermanentItems();
 
 // --- Firestore live update ---
 onSnapshot(ref, snap => {
@@ -36,12 +42,14 @@ onSnapshot(ref, snap => {
 // --- Render list ---
 function renderList(){
   ul.innerHTML = "";
-  itemsArray.forEach((item,index)=>{
+  const allItems = [...itemsArray, ...permanentItems];
+  allItems.forEach((item,index)=>{
     let li = document.createElement("li");
     li.className = "item";
     if(item.bought) li.classList.add("bought");
     if(item.notFound) li.classList.add("not-found");
     li.dataset.index = index;
+    li.dataset.isPermanent = index >= itemsArray.length ? 'true' : 'false';
 
     li.innerHTML = `
       <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
@@ -54,7 +62,7 @@ function renderList(){
     li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index);
     li.querySelector(".item-content").onclick = ()=>window.toggleBought(index);
     li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index);
-    li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index);
+    li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index, index >= itemsArray.length);
 
     li.addEventListener("touchstart", touchStart,{passive:false});
     li.addEventListener("touchmove", touchMove,{passive:false});
@@ -74,19 +82,40 @@ window.addItem = async function(){
 };
 
 window.toggleBought = async function(i){
-  itemsArray[i].bought = !itemsArray[i].bought;
-  await updateDoc(ref,{items:itemsArray});
+  if(i >= itemsArray.length) {
+    const permanentIndex = i - itemsArray.length;
+    permanentItems[permanentIndex].bought = !permanentItems[permanentIndex].bought;
+    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
+    renderList();
+  } else {
+    itemsArray[i].bought = !itemsArray[i].bought;
+    await updateDoc(ref,{items:itemsArray});
+  }
 };
 
 window.toggleNotFound = async function(i){
-  itemsArray[i].notFound = !itemsArray[i].notFound;
-  await updateDoc(ref,{items:itemsArray});
+  if(i >= itemsArray.length) {
+    const permanentIndex = i - itemsArray.length;
+    permanentItems[permanentIndex].notFound = !permanentItems[permanentIndex].notFound;
+    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
+    renderList();
+  } else {
+    itemsArray[i].notFound = !itemsArray[i].notFound;
+    await updateDoc(ref,{items:itemsArray});
+  }
 };
 
-window.deleteItem = async function(i){
+window.deleteItem = async function(i, isPermanent){
   if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
-  itemsArray.splice(i,1);
-  await updateDoc(ref,{items:itemsArray});
+  if(isPermanent) {
+    const permanentIndex = i - itemsArray.length;
+    permanentItems.splice(permanentIndex,1);
+    localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
+  } else {
+    itemsArray.splice(i,1);
+    await updateDoc(ref,{items:itemsArray});
+  }
+  renderList();
 };
 
 window.clearList = async function(){
@@ -143,6 +172,24 @@ window.loadFile = async function(e){
 
 window.toggleOptionsMenu = function(){
   optionsMenu.style.display = optionsMenu.style.display==='block'?'none':'block';
+};
+
+window.managePermanentItems = function(){
+  const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
+  if(!itemName || !itemName.trim()) return;
+  
+  const newItem = {name: itemName.trim(), bought: false, notFound: false};
+  const exists = permanentItems.some(it => it.name.toLowerCase() === newItem.name.toLowerCase());
+  
+  if(exists) {
+    alert("Cet article est déjà dans les favoris.");
+    return;
+  }
+  
+  permanentItems.push(newItem);
+  localStorage.setItem("permanentItems", JSON.stringify(permanentItems));
+  renderList();
+  alert("Article ajouté aux favoris !");
 };
 
 // --- Drag & Drop tactile ---
