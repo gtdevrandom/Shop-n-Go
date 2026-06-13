@@ -11,6 +11,9 @@ const firebaseConfig = {
   measurementId: "G-CJ2KZ8DCS6"
 };
 
+// Vérifie la connexion
+if(localStorage.getItem("auth")!=="true") location.href="login.html";
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const ref = doc(db,"lists","shopping");
@@ -80,23 +83,6 @@ window.toggleNotFound = async function(i){
   await updateDoc(ref,{items:itemsArray});
 };
 
-window.addPermanentItem = async function(){
-  const itemName = prompt("Nom de l'item permanent:");
-  if(!itemName || !itemName.trim()) return;
-  
-  const ref2 = doc(db,"lists","permanent_items");
-  const snap = await getDoc(ref2);
-  let permanentItems = snap.data()?.items || [];
-  
-  if(!permanentItems.find(it=>it.name.toLowerCase()===itemName.trim().toLowerCase())){
-    permanentItems.push({name:itemName.trim(),bought:false,notFound:false});
-    await updateDoc(ref2,{items:permanentItems});
-    alert(`"${itemName.trim()}" ajouté aux items permanents !`);
-  } else {
-    alert("Cet item est déjà dans les permanents.");
-  }
-};
-
 window.deleteItem = async function(i){
   if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
   itemsArray.splice(i,1);
@@ -157,10 +143,6 @@ window.loadFile = async function(e){
 
 window.toggleOptionsMenu = function(){
   optionsMenu.style.display = optionsMenu.style.display==='block'?'none':'block';
-};
-
-window.makePermanent = async function(){
-  addPermanentItem();
 };
 
 // --- Drag & Drop tactile ---
