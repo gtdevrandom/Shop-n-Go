@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, doc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBGyhISFdzVklC1K7Y3TNyQpQ-QJWUXPIo",
@@ -13,11 +13,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const refItems = doc(db,"lists","shopping");
-const refFavorites = doc(db,"lists","favorites");
+const ref = doc(db,"lists","shopping");
 
 let itemsArray = [];
-let favoriteItems = [];
 let draggedItem = null;
 let startY = 0;
 let currentIndex = -1;
@@ -26,66 +24,41 @@ const ul = document.getElementById("list");
 const input = document.getElementById("item");
 const optionsMenu = document.getElementById("optionsMenu");
 
-// --- Firestore live updates ---
-onSnapshot(refItems, snap => {
+// --- Firestore live update ---
+onSnapshot(ref, snap => {
   itemsArray = snap.data()?.items || [];
-  renderList();
-});
-
-onSnapshot(refFavorites, snap => {
-  favoriteItems = snap.data()?.items || [];
   renderList();
 });
 
 // --- Render list ---
 function renderList(){
   ul.innerHTML = "";
-  
-  // Render favorites first
-  favoriteItems.forEach((item,index)=>{
-    renderItem(item, index, true);
-  });
-  
-  // Render regular items
   itemsArray.forEach((item,index)=>{
-    renderItem(item, index, false);
+    let li = document.createElement("li");
+    li.className = "item";
+    if(item.bought) li.classList.add("bought");
+    if(item.notFound) li.classList.add("not-found");
+    li.dataset.index = index;
+
+    li.innerHTML = `
+      <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
+      <div class="item-content">${item.name}</div>
+      <button class="not-found-button">🚫</button>
+      <button class="delete-item">❌</button>
+    `;
+
+    // Events
+    li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index);
+    li.querySelector(".item-content").onclick = ()=>window.toggleBought(index);
+    li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index);
+    li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index);
+
+    li.addEventListener("touchstart", touchStart,{passive:false});
+    li.addEventListener("touchmove", touchMove,{passive:false});
+    li.addEventListener("touchend", touchEnd);
+
+    ul.appendChild(li);
   });
-}
-
-function renderItem(item, index, isFavorite){
-  let li = document.createElement("li");
-  li.className = "item";
-  if(isFavorite) li.classList.add("favorite-item");
-  if(item.bought) li.classList.add("bought");
-  if(item.notFound) li.classList.add("not-found");
-  li.dataset.index = index;
-  li.dataset.isFavorite = isFavorite ? 'true' : 'false';
-
-  // Pour les favoris, pas de bouton de suppression
-  const deleteButton = isFavorite ? '' : '<button class="delete-item">❌</button>';
-  
-  li.innerHTML = `
-    <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
-    <div class="item-content">${item.name}</div>
-    <button class="not-found-button">🚫</button>
-    ${deleteButton}
-  `;
-
-  // Events
-  li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index, isFavorite);
-  li.querySelector(".item-content").onclick = ()=>window.toggleBought(index, isFavorite);
-  li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index, isFavorite);
-  
-  const deleteBtn = li.querySelector(".delete-item");
-  if(deleteBtn) {
-    deleteBtn.onclick = ()=>window.deleteItem(index, isFavorite);
-  }
-
-  li.addEventListener("touchstart", touchStart,{passive:false});
-  li.addEventListener("touchmove", touchMove,{passive:false});
-  li.addEventListener("touchend", touchEnd);
-
-  ul.appendChild(li);
 }
 
 // --- Functions exposées ---
@@ -93,38 +66,24 @@ window.addItem = async function(){
   const val = input.value.trim();
   if(!val) return;
   itemsArray.push({name:val,bought:false,notFound:false});
-  await updateDoc(refItems,{items:itemsArray});
+  await updateDoc(ref,{items:itemsArray});
   input.value="";
 };
 
-window.toggleBought = async function(i, isFavorite){
-  if(isFavorite) {
-    favoriteItems[i].bought = !favoriteItems[i].bought;
-    await updateDoc(refFavorites,{items:favoriteItems});
-  } else {
-    itemsArray[i].bought = !itemsArray[i].bought;
-    await updateDoc(refItems,{items:itemsArray});
-  }
+window.toggleBought = async function(i){
+  itemsArray[i].bought = !itemsArray[i].bought;
+  await updateDoc(ref,{items:itemsArray});
 };
 
-window.toggleNotFound = async function(i, isFavorite){
-  if(isFavorite) {
-    favoriteItems[i].notFound = !favoriteItems[i].notFound;
-    await updateDoc(refFavorites,{items:favoriteItems});
-  } else {
-    itemsArray[i].notFound = !itemsArray[i].notFound;
-    await updateDoc(refItems,{items:itemsArray});
-  }
+window.toggleNotFound = async function(i){
+  itemsArray[i].notFound = !itemsArray[i].notFound;
+  await updateDoc(ref,{items:itemsArray});
 };
 
-window.deleteItem = async function(i, isFavorite){
-  if(isFavorite) {
-    alert("Les articles favoris ne peuvent pas être supprimés.");
-    return;
-  }
+window.deleteItem = async function(i){
   if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
   itemsArray.splice(i,1);
-  await updateDoc(refItems,{items:itemsArray});
+  await updateDoc(ref,{items:itemsArray});
 };
 
 window.clearList = async function(){
@@ -132,11 +91,11 @@ window.clearList = async function(){
   if(notFoundItems.length>0){
     if(confirm("Les non trouvés seront conservés, supprimer le reste ?")){
       itemsArray = itemsArray.filter(it=>it.notFound);
-      await updateDoc(refItems,{items:itemsArray});
+      await updateDoc(ref,{items:itemsArray});
     }
   } else if(confirm("Supprimer toute la liste ?")){
     itemsArray=[];
-    await updateDoc(refItems,{items:itemsArray});
+    await updateDoc(ref,{items:itemsArray});
   }
 };
 
@@ -174,7 +133,7 @@ window.loadFile = async function(e){
   reader.onload=function(ev){
     let lines = ev.target.result.split("\n").map(n=>({name:n.trim(),bought:false,notFound:false}));
     itemsArray.push(...lines);
-    updateDoc(refItems,{items:itemsArray});
+    updateDoc(ref,{items:itemsArray});
   };
   reader.readAsText(file);
 };
@@ -183,21 +142,15 @@ window.toggleOptionsMenu = function(){
   optionsMenu.style.display = optionsMenu.style.display==='block'?'none':'block';
 };
 
-window.managePermanentItems = async function(){
-  const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
-  if(!itemName || !itemName.trim()) return;
-  
-  const newItem = {name: itemName.trim(), bought: false, notFound: false};
-  const exists = favoriteItems.some(it => it.name.toLowerCase() === newItem.name.toLowerCase());
-  
-  if(exists) {
-    alert("Cet article est déjà dans les favoris.");
+window.makePermanent = async function(){
+  const itemToBePermanent = itemsArray[0];
+  if(!itemToBePermanent){
+    alert("La liste est vide !");
     return;
   }
-  
-  favoriteItems.push(newItem);
-  await updateDoc(refFavorites,{items:favoriteItems});
-  alert("Article ajouté aux favoris !");
+  itemToBePermanent.permanent = true;
+  await updateDoc(ref,{items:itemsArray});
+  alert(`"${itemToBePermanent.name}" est maintenant un item permanent !`);
 };
 
 // --- Drag & Drop tactile ---
@@ -222,7 +175,7 @@ function touchMove(e){
       let moved = itemsArray.splice(currentIndex,1)[0];
       itemsArray.splice(targetIndex,0,moved);
       currentIndex=targetIndex;
-      updateDoc(refItems,{items:itemsArray});
+      updateDoc(ref,{items:itemsArray});
     }
   }
 }

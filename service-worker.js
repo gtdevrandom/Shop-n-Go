@@ -1,5 +1,7 @@
 const CACHE_NAME = 'shopngo-cache-v1';
 const urlsToCache = [
+  'login.html',
+  'login.js',
   'app.html',
   'app.js',
   'favicon.ico',
