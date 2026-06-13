@@ -43,7 +43,6 @@ function renderList(){
     li.innerHTML = `
       <input type="checkbox" class="small-checkbox" ${item.bought?"checked":""}>
       <div class="item-content">${item.name}</div>
-      <button class="favorite-button">${item.favorite?"⭐":"☆"}</button>
       <button class="not-found-button">🚫</button>
       <button class="delete-item">❌</button>
     `;
@@ -51,7 +50,6 @@ function renderList(){
     // Events
     li.querySelector(".small-checkbox").onclick = ()=>window.toggleBought(index);
     li.querySelector(".item-content").onclick = ()=>window.toggleBought(index);
-    li.querySelector(".favorite-button").onclick = ()=>window.toggleFavorite(index);
     li.querySelector(".not-found-button").onclick = ()=>window.toggleNotFound(index);
     li.querySelector(".delete-item").onclick = ()=>window.deleteItem(index);
 
@@ -67,7 +65,7 @@ function renderList(){
 window.addItem = async function(){
   const val = input.value.trim();
   if(!val) return;
-  itemsArray.push({name:val,bought:false,notFound:false,favorite:false});
+  itemsArray.push({name:val,bought:false,notFound:false});
   await updateDoc(ref,{items:itemsArray});
   input.value="";
 };
@@ -82,9 +80,21 @@ window.toggleNotFound = async function(i){
   await updateDoc(ref,{items:itemsArray});
 };
 
-window.toggleFavorite = async function(i){
-  itemsArray[i].favorite = !itemsArray[i].favorite;
-  await updateDoc(ref,{items:itemsArray});
+window.addPermanentItem = async function(){
+  const itemName = prompt("Nom de l'item permanent:");
+  if(!itemName || !itemName.trim()) return;
+  
+  const ref2 = doc(db,"lists","permanent_items");
+  const snap = await getDoc(ref2);
+  let permanentItems = snap.data()?.items || [];
+  
+  if(!permanentItems.find(it=>it.name.toLowerCase()===itemName.trim().toLowerCase())){
+    permanentItems.push({name:itemName.trim(),bought:false,notFound:false});
+    await updateDoc(ref2,{items:permanentItems});
+    alert(`"${itemName.trim()}" ajouté aux items permanents !`);
+  } else {
+    alert("Cet item est déjà dans les permanents.");
+  }
 };
 
 window.deleteItem = async function(i){
@@ -138,7 +148,7 @@ window.loadFile = async function(e){
   let file = e.target.files[0];
   let reader = new FileReader();
   reader.onload=function(ev){
-    let lines = ev.target.result.split("\n").map(n=>({name:n.trim(),bought:false,notFound:false,favorite:false}));
+    let lines = ev.target.result.split("\n").map(n=>({name:n.trim(),bought:false,notFound:false}));
     itemsArray.push(...lines);
     updateDoc(ref,{items:itemsArray});
   };
@@ -150,14 +160,7 @@ window.toggleOptionsMenu = function(){
 };
 
 window.makePermanent = async function(){
-  const itemToBePermanent = itemsArray[0];
-  if(!itemToBePermanent){
-    alert("La liste est vide !");
-    return;
-  }
-  itemToBePermanent.permanent = true;
-  await updateDoc(ref,{items:itemsArray});
-  alert(`"${itemToBePermanent.name}" est maintenant un item permanent !`);
+  addPermanentItem();
 };
 
 // --- Drag & Drop tactile ---
