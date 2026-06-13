@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBGyhISFdzVklC1K7Y3TNyQpQ-QJWUXPIo",
@@ -107,41 +107,41 @@ window.toggleBought = async function(i, isFavorite){
   }
 };
 
-window.toggleNotFound = async function(i){
-  if(i >= itemsArray.length) {
-    const permanentIndex = i - itemsArra, isFavorite){
+window.toggleNotFound = async function(i, isFavorite){
   if(isFavorite) {
     favoriteItems[i].notFound = !favoriteItems[i].notFound;
     await updateDoc(refFavorites,{items:favoriteItems});
   } else {
     itemsArray[i].notFound = !itemsArray[i].notFound;
-    await updateDoc(refItems
+    await updateDoc(refItems,{items:itemsArray});
+  }
+};
 
-window.deleteItem = async function(i, isPermanent){
-  if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
-  if(isPermanent) {
-    const permanentIndex = i - itemsArray.length;
-    permanentItems.splice(permanentIndexFavorite){
+window.deleteItem = async function(i, isFavorite){
   if(isFavorite) {
     alert("Les articles favoris ne peuvent pas être supprimés.");
     return;
   }
   if(!confirm("Es-tu sûr de vouloir supprimer cet article ?")) return;
   itemsArray.splice(i,1);
-  await updateDoc(refItems,{items:itemsArray}undItems = itemsArray.filter(it=>it.notFound);
+  await updateDoc(refItems,{items:itemsArray});
+};
+
+window.clearList = async function(){
+  const notFoundItems = itemsArray.filter(it=>it.notFound);
   if(notFoundItems.length>0){
     if(confirm("Les non trouvés seront conservés, supprimer le reste ?")){
       itemsArray = itemsArray.filter(it=>it.notFound);
-      await updateDoc(ref,{items:itemsArray});
+      await updateDoc(refItems,{items:itemsArray});
     }
   } else if(confirm("Supprimer toute la liste ?")){
     itemsArray=[];
-    await updateDoc(ref,{items:itemsArray});
-  }Items,{items:itemsArray});
-    }
-  } else if(confirm("Supprimer toute la liste ?")){
-    itemsArray=[];
-    await updateDoc(refItems.map(it=>it.name).join("\n");
+    await updateDoc(refItems,{items:itemsArray});
+  }
+};
+
+window.downloadList = function(){
+  let text = itemsArray.map(it=>it.name).join("\n");
   let blob = new Blob([text],{type:'text/plain'});
   let a = document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -174,19 +174,16 @@ window.loadFile = async function(e){
   reader.onload=function(ev){
     let lines = ev.target.result.split("\n").map(n=>({name:n.trim(),bought:false,notFound:false}));
     itemsArray.push(...lines);
-    updateDoc(ref,{items:itemsArray});
+    updateDoc(refItems,{items:itemsArray});
   };
   reader.readAsText(file);
 };
 
-window.toggleOptiItemsonsMenu = function(){
+window.toggleOptionsMenu = function(){
   optionsMenu.style.display = optionsMenu.style.display==='block'?'none':'block';
 };
 
-window.managePermanentItems = function(){
-  const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
-  if(!itemName || !itemName.trim()) return;
-  async function(){
+window.managePermanentItems = async function(){
   const itemName = prompt("Entrez le nom de l'article à ajouter aux favoris :");
   if(!itemName || !itemName.trim()) return;
   
@@ -199,7 +196,10 @@ window.managePermanentItems = function(){
   }
   
   favoriteItems.push(newItem);
-  await updateDoc(refFavorites,{items:favoriteItems}
+  await updateDoc(refFavorites,{items:favoriteItems});
+  alert("Article ajouté aux favoris !");
+};
+
 // --- Drag & Drop tactile ---
 function touchStart(e){
   if(e.target.closest('.small-checkbox')||e.target.closest('.delete-item')||e.target.closest('.not-found-button')) return;
@@ -222,8 +222,8 @@ function touchMove(e){
       let moved = itemsArray.splice(currentIndex,1)[0];
       itemsArray.splice(targetIndex,0,moved);
       currentIndex=targetIndex;
-      updateDoc(ref,{items:itemsArray});
-    }Items
+      updateDoc(refItems,{items:itemsArray});
+    }
   }
 }
 
